@@ -5,11 +5,10 @@ const ReportPothole = () => {
   const navigate = useNavigate();
 
   const handleSuccess = (createdPothole) => {
-    // Navigate to details page or dashboard after submission
     if (createdPothole?._id) {
       navigate(`/potholes/${createdPothole._id}`);
     } else {
-      navigate("/");
+      navigate("/my-reports");
     }
   };
 
@@ -20,7 +19,7 @@ const ReportPothole = () => {
           Report a Pothole
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Upload media, specify location coordinates, and submit a road hazard report
+          Upload image or video media, specify location coordinates, and submit a road hazard report
         </p>
       </div>
 

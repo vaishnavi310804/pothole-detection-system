@@ -1,6 +1,7 @@
 import express from "express"
 import db from "./src/config/db.js"
 import cors from 'cors'
+import authRoutes from "./src/routes/authRoutes.js"
 import potholeRoutes from "./src/routes/potholeRoutes.js"
 
 const app=express();
@@ -10,6 +11,7 @@ await db();
 app.use(cors())
 app.use(express.json());
 
+app.use("/api/auth", authRoutes);
 app.use("/api/potholes", potholeRoutes);
 app.get("/",(req,res)=>{
    res.send("API running")

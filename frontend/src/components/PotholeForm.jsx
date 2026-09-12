@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { uploadMedia, createPothole } from "../services/potholeService";
+import { uploadMedia, createPothole, detectPothole } from "../services/potholeService";
+import DetectionPreview from "./DetectionPreview";
 
 const PotholeForm = ({ onSuccess }) => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -7,29 +8,83 @@ const PotholeForm = ({ onSuccess }) => {
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
   const [address, setAddress] = useState("");
-  const [severity, setSeverity] = useState("High");
-  const [confidence, setConfidence] = useState(0.92);
+
+  // AI Detection State
+  const [detectionResult, setDetectionResult] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [detectionError, setDetectionError] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
   const [error, setError] = useState("");
 
-  // Handle file selection and preview creation
+  const runDetection = async (file) => {
+    if (file.type.startsWith("video/")) {
+      setDetectionResult({
+        detected: false,
+        confidence: null,
+        severity: null,
+        count: 0,
+        detections: [],
+        needsManualReview: true,
+      });
+      return;
+    }
+
+    try {
+      setIsAnalyzing(true);
+      setDetectionError("");
+      const result = await detectPothole(file);
+      setDetectionResult(result);
+    } catch (err) {
+      console.error("AI Detection error:", err);
+      const msg = err.response?.data?.message || err.message || "AI Service Unavailable";
+      setDetectionError(msg);
+      setDetectionResult({
+        detected: false,
+        confidence: null,
+        severity: null,
+        count: 0,
+        detections: [],
+        needsManualReview: true,
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setSelectedFile(file);
     setError("");
+    setDetectionError("");
+    setDetectionResult(null);
 
+    const isVideo = file.type.startsWith("video/");
     const previewUrl = URL.createObjectURL(file);
     setFilePreview({
       url: previewUrl,
-      type: file.type.startsWith("video/") ? "video" : "image",
+      type: isVideo ? "video" : "image",
     });
+
+    runDetection(file);
   };
 
-  // Browser GPS Location autofill
+  const handleClearFile = () => {
+    setSelectedFile(null);
+    setFilePreview(null);
+    setDetectionResult(null);
+    setDetectionError("");
+  };
+
+  const handleRetryDetection = () => {
+    if (selectedFile) {
+      runDetection(selectedFile);
+    }
+  };
+
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
       setError("Geolocation is not supported by your browser");
@@ -64,19 +119,43 @@ const PotholeForm = ({ onSuccess }) => {
       return;
     }
 
+    if (isAnalyzing) {
+      setError("Please wait for AI analysis to complete before submitting.");
+      return;
+    }
+
     try {
       setLoading(true);
 
-      // Step 1: Upload media file to S3
+      // Step 1: Upload media to AWS S3
       setUploadStatus("Uploading media to S3 bucket...");
       const uploadResult = await uploadMedia(selectedFile);
 
       if (!uploadResult?.media?.url) {
-        throw new Error("Failed to get uploaded media details from response.");
+        throw new Error("Failed to receive uploaded media details from response.");
       }
 
-      // Step 2: Submit Pothole data payload
+      // Step 2: Build report payload using AI-generated detection results
       setUploadStatus("Creating pothole report in database...");
+
+      const detectionPayload = detectionResult
+        ? {
+            detected: !!detectionResult.detected,
+            confidence: detectionResult.detected ? parseFloat(detectionResult.confidence) : null,
+            severity: detectionResult.detected ? detectionResult.severity : null,
+            count: detectionResult.count || 0,
+            detections: detectionResult.detections || [],
+            needsManualReview: !!detectionResult.needsManualReview,
+          }
+        : {
+            detected: false,
+            confidence: null,
+            severity: null,
+            count: 0,
+            detections: [],
+            needsManualReview: true,
+          };
+
       const potholePayload = {
         media: {
           key: uploadResult.media.key,
@@ -88,10 +167,7 @@ const PotholeForm = ({ onSuccess }) => {
           longitude: parseFloat(longitude),
           address: address || "Unspecified Location",
         },
-        detection: {
-          severity,
-          confidence: parseFloat(confidence),
-        },
+        detection: detectionPayload,
       };
 
       const createdPothole = await createPothole(potholePayload);
@@ -126,8 +202,8 @@ const PotholeForm = ({ onSuccess }) => {
         </div>
       )}
 
-      {/* Section 1: Media Upload */}
-      <div className="mb-8">
+      {/* Section 1: File Upload */}
+      <div className="mb-6">
         <label className="block text-sm font-semibold text-slate-800 mb-2">
           Pothole Media File (Image / Video) <span className="text-rose-500">*</span>
         </label>
@@ -137,7 +213,7 @@ const PotholeForm = ({ onSuccess }) => {
             accept="image/jpeg,image/png,image/jpg,video/mp4,video/mpeg,video/quicktime"
             onChange={handleFileChange}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            disabled={loading}
+            disabled={loading || isAnalyzing}
           />
           {filePreview ? (
             <div className="flex flex-col items-center">
@@ -165,7 +241,16 @@ const PotholeForm = ({ onSuccess }) => {
         </div>
       </div>
 
-      {/* Section 2: Location Details */}
+      {/* Section 2: AI Detection Preview Component */}
+      <DetectionPreview
+        detectionResult={detectionResult}
+        isAnalyzing={isAnalyzing}
+        detectionError={detectionError}
+        onClearFile={handleClearFile}
+        onRetry={handleRetryDetection}
+      />
+
+      {/* Section 3: Location Details */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-3">
           <label className="block text-sm font-semibold text-slate-800">
@@ -219,48 +304,16 @@ const PotholeForm = ({ onSuccess }) => {
         </div>
       </div>
 
-      {/* Section 3: Detection Parameters */}
-      <div className="mb-8">
-        <label className="block text-sm font-semibold text-slate-800 mb-3">
-          Detection Parameters
-        </label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Severity Level</label>
-            <select
-              value={severity}
-              onChange={(e) => setSeverity(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-            >
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
-              Confidence Score ({Math.round(confidence * 100)}%)
-            </label>
-            <input
-              type="range"
-              min="0.1"
-              max="1.0"
-              step="0.01"
-              value={confidence}
-              onChange={(e) => setConfidence(e.target.value)}
-              className="w-full accent-amber-500 cursor-pointer mt-2"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Submit Button */}
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || isAnalyzing}
         className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 px-6 rounded-lg transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm"
       >
-        {loading ? "Submitting Report..." : "Submit Pothole Report"}
+        {isAnalyzing
+          ? "🤖 Analyzing Image with AI..."
+          : loading
+          ? "Submitting Report..."
+          : "Submit Pothole Report"}
       </button>
     </form>
   );

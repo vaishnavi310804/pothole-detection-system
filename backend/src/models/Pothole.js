@@ -2,6 +2,11 @@ import mongoose from "mongoose";
 
 const potholeSchema = new mongoose.Schema(
   {
+    reportedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     media: {
       url: {
         type: String,
@@ -33,17 +38,47 @@ const potholeSchema = new mongoose.Schema(
       },
     },
     detection: {
+      detected: {
+        type: Boolean,
+        default: false,
+      },
       confidence: {
         type: Number,
-        min: 0,
-        max: 1,
+        default: null,
       },
       severity: {
         type: String,
-        required: true,
-        enum: ["Low", "Medium", "High"],
+        enum: ["Low", "Medium", "High", null],
+        default: null,
+      },
+      count: {
+        type: Number,
+        default: 0,
+      },
+      detections: [
+        {
+          label: { type: String, default: "pothole" },
+          confidence: { type: Number },
+          boundingBox: {
+            x1: { type: Number },
+            y1: { type: Number },
+            x2: { type: Number },
+            y2: { type: Number },
+          },
+          normalizedBox: {
+            x1: { type: Number },
+            y1: { type: Number },
+            x2: { type: Number },
+            y2: { type: Number },
+          },
+        },
+      ],
+      needsManualReview: {
+        type: Boolean,
+        default: false,
       },
     },
+
     authority: {
       name: {
         type: String,

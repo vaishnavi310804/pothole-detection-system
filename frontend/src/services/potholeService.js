@@ -13,8 +13,31 @@ export const uploadMedia = async (file) => {
   return response.data;
 };
 
+export const detectPothole = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await apiClient.post("/potholes/detect", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return response.data;
+};
+
+
 export const createPothole = async (potholeData) => {
   const response = await apiClient.post("/potholes", potholeData);
+  return response.data;
+};
+
+export const getMyReports = async (filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.reportStatus) params.append("reportStatus", filters.reportStatus);
+  if (filters.severity) params.append("severity", filters.severity);
+
+  const response = await apiClient.get("/potholes/my-reports", { params });
   return response.data;
 };
 

@@ -1,21 +1,32 @@
 import express from "express";
 import {
   createPothole,
+  getMyPotholes,
   getAllPotholes,
   getPotholeById,
   updatePotholeStatus,
   deletePothole,
   uploadMedia,
+  detectPothole,
 } from "../controllers/potholeController.js";
 import upload from "../middleware/uploadMiddleware.js";
+import { protect, authorizeRoles } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/", createPothole);
-router.get("/", getAllPotholes);
-router.post("/upload", upload.single("file"), uploadMedia);
-router.get("/:id", getPotholeById);
-router.patch("/:id/status", updatePotholeStatus);
-router.delete("/:id", deletePothole);
+// Authenticated user routes
+router.post("/", protect, createPothole);
+router.post("/detect", protect, upload.single("file"), detectPothole);
+router.post("/upload", protect, upload.single("file"), uploadMedia);
+router.get("/my-reports", protect, getMyPotholes);
+
+
+// Admin-only routes
+router.get("/", protect, authorizeRoles("admin"), getAllPotholes);
+router.patch("/:id/status", protect, authorizeRoles("admin"), updatePotholeStatus);
+router.delete("/:id", protect, authorizeRoles("admin"), deletePothole);
+
+// Detail route (ownership checked in controller)
+router.get("/:id", protect, getPotholeById);
 
 export default router;
