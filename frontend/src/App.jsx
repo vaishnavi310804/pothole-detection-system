@@ -16,6 +16,10 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminReports from "./pages/AdminReports";
 import AdminPotholeDetails from "./pages/AdminPotholeDetails";
 
+// Authority Pages
+import AuthorityDashboard from "./pages/AuthorityDashboard";
+import AuthorityPotholeDetails from "./pages/AuthorityPotholeDetails";
+
 // Helper component for Root Route '/'
 const RootRedirect = () => {
   const { isAuthenticated, role, loading } = useAuth();
@@ -35,6 +39,8 @@ const RootRedirect = () => {
 
   return role === "admin" ? (
     <Navigate to="/admin/dashboard" replace />
+  ) : role === "authority" ? (
+    <Navigate to="/authority/dashboard" replace />
   ) : (
     <Navigate to="/dashboard" replace />
   );
@@ -59,6 +65,12 @@ function AppContent() {
             <Route path="/my-reports" element={<MyReports />} />
             <Route path="/report" element={<ReportPothole />} />
             <Route path="/potholes/:id" element={<PotholeDetails />} />
+          </Route>
+
+          {/* Protected Authority Routes */}
+          <Route element={<RoleProtectedRoute allowedRoles={["authority"]} />}>
+            <Route path="/authority/dashboard" element={<AuthorityDashboard />} />
+            <Route path="/authority/reports/:id" element={<AuthorityPotholeDetails />} />
           </Route>
 
           {/* Protected Admin Routes */}

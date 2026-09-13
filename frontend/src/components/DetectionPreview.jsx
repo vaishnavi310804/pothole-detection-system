@@ -10,7 +10,7 @@ const DetectionPreview = ({
       <div className="p-5 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3 text-amber-900 animate-pulse my-4">
         <div className="w-5 h-5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"></div>
         <div>
-          <p className="font-bold text-sm">🤖 Analyzing image with AI...</p>
+          <p className="font-bold text-sm">Analyzing image with AI...</p>
           <p className="text-xs text-amber-700">Please wait while we detect road damage and calculate hazard severity.</p>
         </div>
       </div>
@@ -55,7 +55,7 @@ const DetectionPreview = ({
   return (
     <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 my-4 space-y-4">
       <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-        <span>🤖 AI Detection Results</span>
+        <span>AI Detection Results</span>
       </h3>
 
       {detectionResult.detected ? (

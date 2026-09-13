@@ -72,10 +72,21 @@ const AdminDashboard = () => {
 
   // Metrics computation for all reports
   const totalCount = potholes.length;
-  const reportedCount = potholes.filter((p) => p.reportStatus === "Reported").length;
-  const acknowledgedCount = potholes.filter((p) => p.reportStatus === "Acknowledged").length;
-  const inProgressCount = potholes.filter((p) => p.reportStatus === "In Progress").length;
-  const resolvedCount = potholes.filter((p) => p.reportStatus === "Resolved").length;
+  const unverifiedCount = potholes.filter(
+    (p) =>
+      !p.authority?.name ||
+      p.authority?.name === "Authority requires verification" ||
+      p.authority?.status === "Pending"
+  ).length;
+  const assignedCount = potholes.filter(
+    (p) => p.authority?.status === "Assigned" && p.authority?.name !== "Authority requires verification"
+  ).length;
+  const inProgressCount = potholes.filter(
+    (p) => p.status === "In Progress" || p.reportStatus === "In Progress"
+  ).length;
+  const resolvedCount = potholes.filter(
+    (p) => p.status === "Resolved" || p.reportStatus === "Resolved"
+  ).length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -89,7 +100,7 @@ const AdminDashboard = () => {
             Admin Dashboard Overview
           </h1>
           <p className="text-sm font-medium text-slate-900 mt-1 max-w-xl">
-            Logged in as <span className="font-bold">{user?.name}</span> ({user?.email}). Manage all submitted road hazard reports and update repair status.
+            Logged in as <span className="font-bold">{user?.name}</span> ({user?.email}). Monitor all submitted reports, assigned civic authorities, and manage ticket progress.
           </p>
         </div>
 
@@ -112,16 +123,16 @@ const AdminDashboard = () => {
 
         <div className="bg-white p-5 rounded-xl border border-amber-200 bg-amber-50/40 shadow-2xs">
           <span className="text-xs font-bold text-amber-800 uppercase tracking-wider block mb-1">
-            Reported
+            Needs Verification
           </span>
-          <span className="text-2xl sm:text-3xl font-black text-amber-600">{reportedCount}</span>
+          <span className="text-2xl sm:text-3xl font-black text-amber-600">{unverifiedCount}</span>
         </div>
 
         <div className="bg-white p-5 rounded-xl border border-blue-200 bg-blue-50/40 shadow-2xs">
           <span className="text-xs font-bold text-blue-800 uppercase tracking-wider block mb-1">
-            Acknowledged
+            Assigned to Authority
           </span>
-          <span className="text-2xl sm:text-3xl font-black text-blue-600">{acknowledgedCount}</span>
+          <span className="text-2xl sm:text-3xl font-black text-blue-600">{assignedCount}</span>
         </div>
 
         <div className="bg-white p-5 rounded-xl border border-purple-200 bg-purple-50/40 shadow-2xs">

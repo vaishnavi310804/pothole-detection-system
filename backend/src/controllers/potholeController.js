@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Pothole from "../models/Pothole.js";
 import uploadToS3, { getPresignedMediaUrl } from "../services/s3Service.js";
 import callAIService from "../services/aiService.js";
+import determineAuthority, { SUPPORTED_AUTHORITIES } from "../services/authorityService.js";
 
 
 const reportStatuses = [
@@ -127,11 +128,16 @@ const handleControllerError = (res, error) => {
 export const createPothole = async (req, res) => {
   try {
     const normalizedDetection = normalizeDetectionData(req.body.detection);
+    const authorityData = determineAuthority(req.body.location);
+    const initialStatus = authorityData.status === "Assigned" ? "Assigned" : "Pending";
 
     const potholeData = {
       ...req.body,
       reportedBy: req.user._id,
       detection: normalizedDetection,
+      authority: authorityData,
+      status: initialStatus,
+      reportStatus: initialStatus,
     };
 
     const pothole = await Pothole.create(potholeData);
@@ -193,6 +199,75 @@ export const getAllPotholes = async (req, res) => {
   }
 };
 
+export const getAuthorityPotholes = async (req, res) => {
+  try {
+    if (req.user.role !== "authority" || !req.user.authorityName) {
+      return res.status(403).json({
+        message: "Forbidden: You are not authorized to access this authority ticket.",
+      });
+    }
+
+    const filters = {
+      "authority.name": req.user.authorityName,
+    };
+
+    if (req.query.reportStatus) {
+      filters.$or = [
+        { reportStatus: req.query.reportStatus },
+        { status: req.query.reportStatus },
+      ];
+    }
+
+    if (req.query.status) {
+      filters.status = req.query.status;
+    }
+
+    if (req.query.severity) {
+      filters["detection.severity"] = req.query.severity;
+    }
+
+    const potholes = await Pothole.find(filters)
+      .sort({ createdAt: -1 })
+      .populate("reportedBy", "name email");
+
+    const formattedPotholes = await formatPotholes(potholes);
+    return res.status(200).json(formattedPotholes);
+  } catch (error) {
+    return handleControllerError(res, error);
+  }
+};
+
+export const getAuthorityPotholeById = async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ message: "Invalid pothole ID" });
+  }
+
+  try {
+    if (req.user.role !== "authority" || !req.user.authorityName) {
+      return res.status(403).json({
+        message: "Forbidden: You are not authorized to access this authority ticket.",
+      });
+    }
+
+    const pothole = await Pothole.findById(req.params.id).populate("reportedBy", "name email");
+
+    if (!pothole) {
+      return res.status(404).json({ message: "Pothole not found" });
+    }
+
+    if (pothole.authority?.name !== req.user.authorityName) {
+      return res.status(403).json({
+        message: "You are not authorized to access this authority ticket.",
+      });
+    }
+
+    const formatted = await formatPothole(pothole);
+    return res.status(200).json(formatted);
+  } catch (error) {
+    return handleControllerError(res, error);
+  }
+};
+
 export const getPotholeById = async (req, res) => {
   if (!isValidObjectId(req.params.id)) {
     return res.status(400).json({
@@ -212,12 +287,14 @@ export const getPotholeById = async (req, res) => {
       });
     }
 
-    if (
-      req.user.role !== "admin" &&
-      pothole.reportedBy?._id.toString() !== req.user._id.toString()
-    ) {
+    const isReporter = pothole.reportedBy?._id.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === "admin";
+    const isAssignedAuthority =
+      req.user.role === "authority" && pothole.authority?.name === req.user.authorityName;
+
+    if (!isAdmin && !isReporter && !isAssignedAuthority) {
       return res.status(403).json({
-        message: "Forbidden: You are not authorized to view this report",
+        message: "You are not authorized to access this authority ticket.",
       });
     }
 
@@ -235,27 +312,107 @@ export const updatePotholeStatus = async (req, res) => {
     });
   }
 
-  const { reportStatus } = req.body;
+  const newStatus = req.body.reportStatus || req.body.status;
+  const allowedStatusValues = ["Reported", "Acknowledged", "Assigned", "In Progress", "Resolved", "Pending"];
 
-  if (!reportStatuses.includes(reportStatus)) {
+  if (!newStatus || !allowedStatusValues.includes(newStatus)) {
     return res.status(400).json({
       message: "Invalid report status",
-      allowedStatuses: reportStatuses,
+      allowedStatuses: allowedStatusValues,
     });
   }
 
   try {
-    const pothole = await Pothole.findByIdAndUpdate(
-      req.params.id,
-      { $set: { reportStatus } },
-      { new: true, runValidators: true }
-    ).populate("reportedBy", "name email");
+    const pothole = await Pothole.findById(req.params.id).populate("reportedBy", "name email");
 
     if (!pothole) {
       return res.status(404).json({
         message: "Pothole not found",
       });
     }
+
+    // Check authority access control & status transition permissions
+    if (req.user.role === "authority") {
+      if (!req.user.authorityName || pothole.authority?.name !== req.user.authorityName) {
+        return res.status(403).json({
+          message: "You are not authorized to access this authority ticket.",
+        });
+      }
+
+      const currentStatus = pothole.status || pothole.reportStatus || "Assigned";
+      const allowedTransitions = {
+        Pending: ["Assigned", "In Progress"],
+        Assigned: ["In Progress"],
+        "In Progress": ["Resolved"],
+        Resolved: [],
+        Reported: ["In Progress", "Resolved"],
+        Acknowledged: ["In Progress", "Resolved"],
+      };
+
+      const allowedNext = allowedTransitions[currentStatus] || ["In Progress", "Resolved"];
+      if (!allowedNext.includes(newStatus)) {
+        return res.status(400).json({
+          message: `Invalid status transition from "${currentStatus}" to "${newStatus}".`,
+          allowedNextTransitions: allowedNext,
+        });
+      }
+    }
+
+    pothole.status = newStatus;
+    pothole.reportStatus = newStatus;
+    await pothole.save();
+
+    const formatted = await formatPothole(pothole);
+    return res.status(200).json(formatted);
+  } catch (error) {
+    return handleControllerError(res, error);
+  }
+};
+
+export const reassignPotholeAuthority = async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ message: "Invalid pothole ID" });
+  }
+
+  const { authorityName } = req.body;
+
+  if (!authorityName) {
+    return res.status(400).json({ message: "authorityName is required" });
+  }
+
+  const matchedConfig = SUPPORTED_AUTHORITIES.find(
+    (a) => a.name.toLowerCase() === authorityName.trim().toLowerCase()
+  );
+
+  if (!matchedConfig) {
+    return res.status(400).json({
+      message: "Unsupported authority name for reassignment",
+      supportedAuthorities: SUPPORTED_AUTHORITIES.map((a) => a.name),
+    });
+  }
+
+  try {
+    const pothole = await Pothole.findById(req.params.id).populate("reportedBy", "name email");
+
+    if (!pothole) {
+      return res.status(404).json({ message: "Pothole not found" });
+    }
+
+    pothole.authority = {
+      name: matchedConfig.name,
+      type: matchedConfig.type,
+      jurisdiction: matchedConfig.jurisdiction,
+      status: "Assigned",
+      source: "Admin Manual Assignment",
+      confidence: "High",
+      needsManualReview: false,
+      assignedAt: new Date(),
+    };
+
+    pothole.status = "Assigned";
+    pothole.reportStatus = "Assigned";
+
+    await pothole.save();
 
     const formatted = await formatPothole(pothole);
     return res.status(200).json(formatted);

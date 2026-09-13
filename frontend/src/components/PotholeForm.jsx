@@ -126,8 +126,6 @@ const PotholeForm = ({ onSuccess }) => {
 
     try {
       setLoading(true);
-
-      // Step 1: Upload media to AWS S3
       setUploadStatus("Uploading media to S3 bucket...");
       const uploadResult = await uploadMedia(selectedFile);
 
@@ -135,7 +133,6 @@ const PotholeForm = ({ onSuccess }) => {
         throw new Error("Failed to receive uploaded media details from response.");
       }
 
-      // Step 2: Build report payload using AI-generated detection results
       setUploadStatus("Creating pothole report in database...");
 
       const detectionPayload = detectionResult
@@ -202,10 +199,9 @@ const PotholeForm = ({ onSuccess }) => {
         </div>
       )}
 
-      {/* Section 1: File Upload */}
       <div className="mb-6">
         <label className="block text-sm font-semibold text-slate-800 mb-2">
-          Pothole Media File (Image / Video) <span className="text-rose-500">*</span>
+          Pothole Image <span className="text-rose-500">*</span>
         </label>
         <div className="border-2 border-dashed border-slate-300 hover:border-amber-500 rounded-xl p-6 text-center bg-slate-50 transition-colors cursor-pointer relative">
           <input
@@ -261,7 +257,7 @@ const PotholeForm = ({ onSuccess }) => {
             onClick={handleGetLocation}
             className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3 py-1.5 rounded-md border border-slate-300 transition-colors flex items-center gap-1"
           >
-            📍 Auto-detect GPS
+            📍Auto-detect GPS
           </button>
         </div>
 
@@ -310,7 +306,7 @@ const PotholeForm = ({ onSuccess }) => {
         className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 px-6 rounded-lg transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm"
       >
         {isAnalyzing
-          ? "🤖 Analyzing Image with AI..."
+          ? "Analyzing Image with AI..."
           : loading
           ? "Submitting Report..."
           : "Submit Pothole Report"}

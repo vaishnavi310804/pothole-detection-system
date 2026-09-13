@@ -67,6 +67,7 @@ export const loginUser = async (req, res) => {
           name: user.name,
           email: user.email,
           role: user.role,
+          authorityName: user.authorityName || null,
         },
       });
     } else {

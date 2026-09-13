@@ -66,3 +66,25 @@ export const deletePothole = async (id) => {
   const response = await apiClient.delete(`/potholes/${id}`);
   return response.data;
 };
+
+export const getAuthorityPotholes = async (filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.reportStatus) params.append("reportStatus", filters.reportStatus);
+  if (filters.status) params.append("status", filters.status);
+  if (filters.severity) params.append("severity", filters.severity);
+
+  const response = await apiClient.get("/potholes/authority/my-reports", { params });
+  return response.data;
+};
+
+export const getAuthorityPotholeById = async (id) => {
+  const response = await apiClient.get(`/potholes/authority/reports/${id}`);
+  return response.data;
+};
+
+export const reassignAuthority = async (id, authorityName) => {
+  const response = await apiClient.patch(`/potholes/${id}/authority`, {
+    authorityName,
+  });
+  return response.data;
+};

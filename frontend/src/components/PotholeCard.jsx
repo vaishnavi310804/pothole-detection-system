@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import StatusBadge from "./StatusBadge";
 
 const PotholeCard = ({ pothole, onDelete, isAdmin = false, detailPath }) => {
-  const { _id, media, location, detection, reportStatus, createdAt, reportedBy } = pothole;
+  const { _id, media, location, detection, authority, reportStatus, createdAt, reportedBy } = pothole;
   const [mediaError, setMediaError] = useState(false);
 
   const formattedDate = createdAt
@@ -74,6 +74,17 @@ const PotholeCard = ({ pothole, onDelete, isAdmin = false, detailPath }) => {
                 {detection?.confidence != null
                   ? `${Math.round(detection.confidence * 100)}%`
                   : "N/A"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center pt-1 border-t border-slate-200/60">
+              <span className="text-slate-500 font-medium">Authority</span>
+              <span
+                className="font-semibold text-slate-700 truncate max-w-[140px]"
+                title={authority?.name || "Authority requires verification"}
+              >
+                {authority?.name && authority.name !== "Authority requires verification"
+                  ? authority.name
+                  : "Verification Required"}
               </span>
             </div>
             {reportedBy && (

@@ -155,10 +155,9 @@ const PotholeDetails = () => {
             </p>
           </div>
 
-          {/* Detection & Metadata */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
             <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
-              <span>🤖 AI Detection Analysis</span>
+              <span>AI Detection Analysis</span>
               {detection?.detected && (
                 <span className="text-[10px] bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">
                   ✓ Verified
@@ -216,27 +215,60 @@ const PotholeDetails = () => {
 
 
           {/* Authority Assignment */}
-          {authority && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-3">
-              <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
-                Assigned Authority
-              </h2>
-              <div className="text-xs space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Authority Name</span>
-                  <span className="font-semibold text-slate-800">{authority.name || "Unassigned"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Department</span>
-                  <span className="font-medium text-slate-800">{authority.type || "N/A"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Work Status</span>
-                  <span className="font-medium text-slate-800">{authority.status || "Pending"}</span>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-3">
+            <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center justify-between">
+              <span>🏛️ Responsible Civic Authority</span>
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  authority?.status === "Assigned"
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-amber-100 text-amber-800"
+                }`}
+              >
+                {authority?.status || "Pending"}
+              </span>
+            </h2>
+
+            {(authority?.needsManualReview ||
+              authority?.status === "Pending" ||
+              !authority?.name ||
+              authority?.name === "Authority requires verification") && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start gap-2">
+                <span className="text-sm">⚠️</span>
+                <div>
+                  <p className="font-bold">Authority requires verification</p>
+                  <p className="text-[11px] text-amber-700">
+                    Location could not be automatically assigned to a verified municipal region. Manual review required.
+                  </p>
                 </div>
               </div>
+            )}
+
+            <div className="text-xs space-y-2">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Authority Name</span>
+                <span className="font-semibold text-slate-800 text-right">
+                  {authority?.name || "Authority requires verification"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Authority Type</span>
+                <span className="font-medium text-slate-800">{authority?.type || "Unknown"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Jurisdiction</span>
+                <span className="font-medium text-slate-800">{authority?.jurisdiction || "Unspecified"}</span>
+              </div>
+              <div className="flex justify-between border-t border-slate-100 pt-2">
+                <span className="text-slate-500">Identification Source</span>
+                <span className="font-medium text-slate-700">{authority?.source || "System Default"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Confidence</span>
+                <span className="font-bold text-slate-800">{authority?.confidence || "None"}</span>
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

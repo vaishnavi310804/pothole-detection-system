@@ -20,7 +20,12 @@ const RoleProtectedRoute = ({ allowedRoles, children }) => {
   if (!user || !allowedRoles.includes(user.role)) {
     // If logged in as normal user trying to access admin route, redirect to user dashboard
     // If logged in as admin trying to access restricted route, redirect to admin dashboard
-    const fallbackPath = user?.role === "admin" ? "/admin/dashboard" : "/dashboard";
+    const fallbackPath =
+      user?.role === "admin"
+        ? "/admin/dashboard"
+        : user?.role === "authority"
+        ? "/authority/dashboard"
+        : "/dashboard";
     return <Navigate to={fallbackPath} replace />;
   }
 

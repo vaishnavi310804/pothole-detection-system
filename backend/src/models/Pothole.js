@@ -83,20 +83,50 @@ const potholeSchema = new mongoose.Schema(
       name: {
         type: String,
         trim: true,
+        default: "Authority requires verification",
       },
       type: {
         type: String,
         trim: true,
+        default: "Unknown",
+      },
+      jurisdiction: {
+        type: String,
+        trim: true,
+        default: "Unspecified",
       },
       status: {
         type: String,
         enum: ["Pending", "Assigned", "Sent"],
         default: "Pending",
       },
+      source: {
+        type: String,
+        trim: true,
+        default: "System Fallback",
+      },
+      confidence: {
+        type: String,
+        enum: ["High", "Medium", "Low", "None"],
+        default: "None",
+      },
+      needsManualReview: {
+        type: Boolean,
+        default: true,
+      },
+      assignedAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+    status: {
+      type: String,
+      enum: ["Pending", "Assigned", "In Progress", "Resolved"],
+      default: "Pending",
     },
     reportStatus: {
       type: String,
-      enum: ["Reported", "Acknowledged", "In Progress", "Resolved"],
+      enum: ["Reported", "Acknowledged", "Assigned", "In Progress", "Resolved", "Pending"],
       default: "Reported",
     },
     detectedAt: {

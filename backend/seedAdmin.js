@@ -53,8 +53,55 @@ const seedAdmin = async () => {
       }
     }
 
-    // Clean up any remaining orphan admin@okdriver.com account to avoid duplicates
-    await User.deleteMany({ email: "admin@okdriver.com" });
+    // Seed demonstration authority accounts
+    const authorityAccounts = [
+      {
+        name: "Chandigarh Municipal Authority",
+        email: "chandigarh@authority.com",
+        authorityName: "Municipal Corporation Chandigarh",
+      },
+      {
+        name: "Delhi Municipal Authority",
+        email: "delhi@authority.com",
+        authorityName: "Municipal Corporation of Delhi",
+      },
+      {
+        name: "Bengaluru Municipal Authority",
+        email: "bengaluru@authority.com",
+        authorityName: "Bruhat Bengaluru Mahanagara Palike",
+      },
+      {
+        name: "Mumbai Municipal Authority",
+        email: "mumbai@authority.com",
+        authorityName: "Brihanmumbai Municipal Corporation",
+      },
+      {
+        name: "Mohali Municipal Authority",
+        email: "mohali@authority.com",
+        authorityName: "Municipal Corporation Mohali",
+      },
+    ];
+
+    const defaultAuthPassword = process.env.AUTHORITY_DEFAULT_PASSWORD || "authority123";
+
+    for (const authAcc of authorityAccounts) {
+      const existingAuth = await User.findOne({ email: authAcc.email.toLowerCase() });
+      if (!existingAuth) {
+        await User.create({
+          name: authAcc.name,
+          email: authAcc.email.toLowerCase(),
+          password: defaultAuthPassword,
+          role: "authority",
+          authorityName: authAcc.authorityName,
+        });
+        console.log(`Created authority account for ${authAcc.authorityName} (${authAcc.email})`);
+      } else {
+        existingAuth.role = "authority";
+        existingAuth.authorityName = authAcc.authorityName;
+        await existingAuth.save();
+        console.log(`Updated authority account for ${authAcc.authorityName} (${authAcc.email})`);
+      }
+    }
 
     await mongoose.disconnect();
     console.log("Database connection closed. Seed completed.");
