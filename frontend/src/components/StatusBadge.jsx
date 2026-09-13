@@ -9,6 +9,9 @@ const StatusBadge = ({ value, type = "status" }) => {
       case "Acknowledged":
         styleClasses = "bg-blue-500/10 text-blue-600 border-blue-500/30";
         break;
+      case "Assigned":
+        styleClasses = "bg-indigo-500/10 text-indigo-600 border-indigo-500/30";
+        break;
       case "In Progress":
         styleClasses = "bg-purple-500/10 text-purple-600 border-purple-500/30";
         break;

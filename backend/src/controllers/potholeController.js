@@ -175,15 +175,17 @@ export const createPothole = async (req, res) => {
   try {
     const normalizedDetection = normalizeDetectionData(req.body.detection);
     const authorityData = determineAuthority(req.body.location);
-    const initialStatus = authorityData.status === "Assigned" ? "Assigned" : "Pending";
+    if (authorityData) {
+      authorityData.status = "Pending";
+    }
 
     const potholeData = {
       ...req.body,
       reportedBy: req.user._id,
       detection: normalizedDetection,
       authority: authorityData,
-      status: initialStatus,
-      reportStatus: initialStatus,
+      status: "Reported",
+      reportStatus: "Reported",
     };
 
     const pothole = await Pothole.create(potholeData);
@@ -255,17 +257,14 @@ export const getAuthorityPotholes = async (req, res) => {
 
     const filters = {
       "authority.name": req.user.authorityName,
+      status: { $in: ["Assigned", "In Progress", "Resolved"] },
     };
 
-    if (req.query.reportStatus) {
-      filters.$or = [
-        { reportStatus: req.query.reportStatus },
-        { status: req.query.reportStatus },
-      ];
-    }
-
-    if (req.query.status) {
-      filters.status = req.query.status;
+    if (req.query.reportStatus || req.query.status) {
+      const qStatus = req.query.reportStatus || req.query.status;
+      if (["Assigned", "In Progress", "Resolved"].includes(qStatus)) {
+        filters.status = qStatus;
+      }
     }
 
     if (req.query.severity) {
@@ -358,8 +357,15 @@ export const updatePotholeStatus = async (req, res) => {
     });
   }
 
+  const userRole = req.user?.role;
+  if (userRole !== "admin" && userRole !== "authority") {
+    return res.status(403).json({
+      message: "Forbidden: Users are not permitted to change report status.",
+    });
+  }
+
   const newStatus = req.body.reportStatus || req.body.status;
-  const allowedStatusValues = ["Reported", "Acknowledged", "Assigned", "In Progress", "Resolved", "Pending"];
+  const allowedStatusValues = ["Reported", "Acknowledged", "Assigned", "In Progress", "Resolved"];
 
   if (!newStatus || !allowedStatusValues.includes(newStatus)) {
     return res.status(400).json({
@@ -377,35 +383,66 @@ export const updatePotholeStatus = async (req, res) => {
       });
     }
 
-    // Check authority access control & status transition permissions
-    if (req.user.role === "authority") {
-      if (!req.user.authorityName || pothole.authority?.name !== req.user.authorityName) {
-        return res.status(403).json({
-          message: "You are not authorized to access this authority ticket.",
+    const currentStatus = pothole.status || pothole.reportStatus || "Reported";
+
+    // Strict Role-Based Transition Rules
+    if (userRole === "admin") {
+      if (["In Progress", "Resolved"].includes(newStatus)) {
+        return res.status(400).json({
+          message: "Admin cannot update operational repair status to In Progress or Resolved. Only the assigned civic authority can perform repair actions.",
         });
       }
 
-      const currentStatus = pothole.status || pothole.reportStatus || "Assigned";
-      const allowedTransitions = {
-        Pending: ["Assigned", "In Progress"],
-        Assigned: ["In Progress"],
-        "In Progress": ["Resolved"],
+      const adminAllowedTransitions = {
+        Reported: ["Acknowledged", "Assigned"],
+        Acknowledged: ["Assigned"],
+        Assigned: ["Assigned"],
+        "In Progress": [],
         Resolved: [],
-        Reported: ["In Progress", "Resolved"],
-        Acknowledged: ["In Progress", "Resolved"],
       };
 
-      const allowedNext = allowedTransitions[currentStatus] || ["In Progress", "Resolved"];
+      const allowedNext = adminAllowedTransitions[currentStatus] || [];
       if (!allowedNext.includes(newStatus)) {
         return res.status(400).json({
-          message: `Invalid status transition from "${currentStatus}" to "${newStatus}".`,
+          message: `Invalid Admin status transition from "${currentStatus}" to "${newStatus}".`,
+          allowedNextTransitions: allowedNext,
+        });
+      }
+    } else if (userRole === "authority") {
+      if (!req.user.authorityName || pothole.authority?.name !== req.user.authorityName) {
+        return res.status(403).json({
+          message: "Forbidden: You are not authorized to update this authority ticket.",
+        });
+      }
+
+      if (currentStatus === "Resolved") {
+        return res.status(400).json({
+          message: "Resolved tickets cannot be moved back to an earlier status.",
+        });
+      }
+
+      const authorityAllowedTransitions = {
+        Assigned: ["In Progress"],
+        "In Progress": ["Resolved"],
+      };
+
+      const allowedNext = authorityAllowedTransitions[currentStatus] || [];
+      if (!allowedNext.includes(newStatus)) {
+        return res.status(400).json({
+          message: `Invalid Authority status transition from "${currentStatus}" to "${newStatus}".`,
           allowedNextTransitions: allowedNext,
         });
       }
     }
 
+    // Synchronize both status fields
     pothole.status = newStatus;
     pothole.reportStatus = newStatus;
+
+    if (newStatus === "Assigned" && pothole.authority) {
+      pothole.authority.status = "Assigned";
+    }
+
     await pothole.save();
 
     const formatted = await formatPothole(pothole);
@@ -444,6 +481,19 @@ export const reassignPotholeAuthority = async (req, res) => {
       return res.status(404).json({ message: "Pothole not found" });
     }
 
+    const currentStatus = pothole.status || pothole.reportStatus || "Reported";
+    if (currentStatus === "In Progress") {
+      return res.status(400).json({
+        message: "Cannot reassign authority while repair is actively In Progress.",
+      });
+    }
+
+    if (currentStatus === "Resolved") {
+      return res.status(400).json({
+        message: "Cannot reassign authority for a Resolved report.",
+      });
+    }
+
     pothole.authority = {
       name: matchedConfig.name,
       type: matchedConfig.type,
@@ -466,6 +516,7 @@ export const reassignPotholeAuthority = async (req, res) => {
     return handleControllerError(res, error);
   }
 };
+
 
 export const deletePothole = async (req, res) => {
   if (!isValidObjectId(req.params.id)) {

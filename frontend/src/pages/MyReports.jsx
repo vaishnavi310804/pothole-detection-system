@@ -99,6 +99,7 @@ const MyReports = () => {
             <option value="">All Statuses</option>
             <option value="Reported">Reported</option>
             <option value="Acknowledged">Acknowledged</option>
+            <option value="Assigned">Assigned</option>
             <option value="In Progress">In Progress</option>
             <option value="Resolved">Resolved</option>
           </select>

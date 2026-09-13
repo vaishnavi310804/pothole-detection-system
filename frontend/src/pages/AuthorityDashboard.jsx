@@ -79,12 +79,11 @@ const AuthorityDashboard = () => {
     }
   };
 
-  // Metrics computation for logged in authority
+  // Metrics computation for logged in authority (Assigned, In Progress, Resolved)
   const totalCount = potholes.length;
-  const pendingCount = potholes.filter((p) => p.status === "Pending" || p.reportStatus === "Pending").length;
-  const assignedCount = potholes.filter((p) => p.status === "Assigned" || p.reportStatus === "Assigned" || p.reportStatus === "Reported" || p.reportStatus === "Acknowledged").length;
-  const inProgressCount = potholes.filter((p) => p.status === "In Progress" || p.reportStatus === "In Progress").length;
-  const resolvedCount = potholes.filter((p) => p.status === "Resolved" || p.reportStatus === "Resolved").length;
+  const assignedCount = potholes.filter((p) => (p.status || p.reportStatus) === "Assigned").length;
+  const inProgressCount = potholes.filter((p) => (p.status || p.reportStatus) === "In Progress").length;
+  const resolvedCount = potholes.filter((p) => (p.status || p.reportStatus) === "Resolved").length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -111,7 +110,7 @@ const AuthorityDashboard = () => {
       </div>
 
       {/* Summary Metrics Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
           <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
             Total Assigned
@@ -119,16 +118,9 @@ const AuthorityDashboard = () => {
           <span className="text-2xl sm:text-3xl font-black text-slate-900">{totalCount}</span>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-amber-200 bg-amber-50/40 shadow-2xs">
-          <span className="text-xs font-bold text-amber-800 uppercase tracking-wider block mb-1">
-            Pending
-          </span>
-          <span className="text-2xl sm:text-3xl font-black text-amber-600">{pendingCount}</span>
-        </div>
-
         <div className="bg-white p-5 rounded-xl border border-blue-200 bg-blue-50/40 shadow-2xs">
           <span className="text-xs font-bold text-blue-800 uppercase tracking-wider block mb-1">
-            Assigned
+            Assigned (New)
           </span>
           <span className="text-2xl sm:text-3xl font-black text-blue-600">{assignedCount}</span>
         </div>
@@ -140,13 +132,16 @@ const AuthorityDashboard = () => {
           <span className="text-2xl sm:text-3xl font-black text-purple-600">{inProgressCount}</span>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-emerald-200 bg-emerald-50/40 shadow-2xs col-span-2 sm:col-span-1">
+        <div className="bg-white p-5 rounded-xl border border-emerald-200 bg-emerald-50/40 shadow-2xs">
           <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block mb-1">
             Resolved
           </span>
           <span className="text-2xl sm:text-3xl font-black text-emerald-600">{resolvedCount}</span>
         </div>
       </div>
+
+
+
 
       {/* Filter Header */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -275,7 +270,7 @@ const AuthorityDashboard = () => {
                   </Link>
 
                   {/* Status Action Buttons */}
-                  {currentStatus === "Assigned" || currentStatus === "Reported" || currentStatus === "Acknowledged" ? (
+                  {currentStatus === "Assigned" ? (
                     <button
                       onClick={() => handleStatusChange(pothole._id, "In Progress")}
                       disabled={updatingId === pothole._id}

@@ -145,14 +145,15 @@ const potholeSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Pending", "Assigned", "In Progress", "Resolved"],
-      default: "Pending",
+      enum: ["Reported", "Acknowledged", "Assigned", "In Progress", "Resolved", "Pending"],
+      default: "Reported",
     },
     reportStatus: {
       type: String,
       enum: ["Reported", "Acknowledged", "Assigned", "In Progress", "Resolved", "Pending"],
       default: "Reported",
     },
+
     detectedAt: {
       type: Date,
       default: Date.now,

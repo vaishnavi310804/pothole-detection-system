@@ -54,10 +54,11 @@ const UserDashboard = () => {
 
   // Calculate metrics for current user
   const totalCount = reports.length;
-  const reportedCount = reports.filter((p) => p.reportStatus === "Reported").length;
-  const acknowledgedCount = reports.filter((p) => p.reportStatus === "Acknowledged").length;
-  const inProgressCount = reports.filter((p) => p.reportStatus === "In Progress").length;
-  const resolvedCount = reports.filter((p) => p.reportStatus === "Resolved").length;
+  const reportedCount = reports.filter((p) => (p.status || p.reportStatus) === "Reported").length;
+  const acknowledgedCount = reports.filter((p) => (p.status || p.reportStatus) === "Acknowledged").length;
+  const assignedCount = reports.filter((p) => (p.status || p.reportStatus) === "Assigned").length;
+  const inProgressCount = reports.filter((p) => (p.status || p.reportStatus) === "In Progress").length;
+  const resolvedCount = reports.filter((p) => (p.status || p.reportStatus) === "Resolved").length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -84,7 +85,7 @@ const UserDashboard = () => {
       </div>
 
       {/* Metrics Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
           <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
             Total Submitted
@@ -106,6 +107,13 @@ const UserDashboard = () => {
           <span className="text-2xl sm:text-3xl font-black text-blue-600">{acknowledgedCount}</span>
         </div>
 
+        <div className="bg-white p-4 rounded-xl border border-indigo-200 bg-indigo-50/30 shadow-2xs">
+          <span className="text-xs font-bold text-indigo-700 uppercase tracking-wider block mb-1">
+            Assigned
+          </span>
+          <span className="text-2xl sm:text-3xl font-black text-indigo-600">{assignedCount}</span>
+        </div>
+
         <div className="bg-white p-4 rounded-xl border border-purple-200 bg-purple-50/30 shadow-2xs">
           <span className="text-xs font-bold text-purple-700 uppercase tracking-wider block mb-1">
             In Progress
@@ -113,7 +121,7 @@ const UserDashboard = () => {
           <span className="text-2xl sm:text-3xl font-black text-purple-600">{inProgressCount}</span>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-emerald-200 bg-emerald-50/30 shadow-2xs col-span-2 sm:col-span-1">
+        <div className="bg-white p-4 rounded-xl border border-emerald-200 bg-emerald-50/30 shadow-2xs">
           <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider block mb-1">
             Resolved
           </span>

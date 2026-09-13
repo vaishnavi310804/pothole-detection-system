@@ -185,7 +185,7 @@ const AuthorityPotholeDetails = () => {
             {/* Action Buttons */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-2">Update Ticket Progress</label>
-              {currentStatus === "Assigned" || currentStatus === "Reported" || currentStatus === "Acknowledged" ? (
+              {currentStatus === "Assigned" ? (
                 <button
                   onClick={() => handleStatusChange("In Progress")}
                   disabled={updating}

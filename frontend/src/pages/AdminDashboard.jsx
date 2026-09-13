@@ -72,21 +72,11 @@ const AdminDashboard = () => {
 
   // Metrics computation for all reports
   const totalCount = potholes.length;
-  const unverifiedCount = potholes.filter(
-    (p) =>
-      !p.authority?.name ||
-      p.authority?.name === "Authority requires verification" ||
-      p.authority?.status === "Pending"
-  ).length;
-  const assignedCount = potholes.filter(
-    (p) => p.authority?.status === "Assigned" && p.authority?.name !== "Authority requires verification"
-  ).length;
-  const inProgressCount = potholes.filter(
-    (p) => p.status === "In Progress" || p.reportStatus === "In Progress"
-  ).length;
-  const resolvedCount = potholes.filter(
-    (p) => p.status === "Resolved" || p.reportStatus === "Resolved"
-  ).length;
+  const reportedCount = potholes.filter((p) => (p.status || p.reportStatus) === "Reported").length;
+  const acknowledgedCount = potholes.filter((p) => (p.status || p.reportStatus) === "Acknowledged").length;
+  const assignedCount = potholes.filter((p) => (p.status || p.reportStatus) === "Assigned").length;
+  const inProgressCount = potholes.filter((p) => (p.status || p.reportStatus) === "In Progress").length;
+  const resolvedCount = potholes.filter((p) => (p.status || p.reportStatus) === "Resolved").length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -100,7 +90,7 @@ const AdminDashboard = () => {
             Admin Dashboard Overview
           </h1>
           <p className="text-sm font-medium text-slate-900 mt-1 max-w-xl">
-            Logged in as <span className="font-bold">{user?.name}</span> ({user?.email}). Monitor all submitted reports, assigned civic authorities, and manage ticket progress.
+            Logged in as <span className="font-bold">{user?.name}</span> ({user?.email}). Review submitted reports, acknowledge hazards, and assign civic authorities.
           </p>
         </div>
 
@@ -113,42 +103,50 @@ const AdminDashboard = () => {
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
           <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
             Total Reports
           </span>
-          <span className="text-2xl sm:text-3xl font-black text-slate-900">{totalCount}</span>
+          <span className="text-2xl font-black text-slate-900">{totalCount}</span>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-amber-200 bg-amber-50/40 shadow-2xs">
+        <div className="bg-white p-4 rounded-xl border border-amber-200 bg-amber-50/40 shadow-2xs">
           <span className="text-xs font-bold text-amber-800 uppercase tracking-wider block mb-1">
-            Needs Verification
+            Reported
           </span>
-          <span className="text-2xl sm:text-3xl font-black text-amber-600">{unverifiedCount}</span>
+          <span className="text-2xl font-black text-amber-600">{reportedCount}</span>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-blue-200 bg-blue-50/40 shadow-2xs">
+        <div className="bg-white p-4 rounded-xl border border-blue-200 bg-blue-50/40 shadow-2xs">
           <span className="text-xs font-bold text-blue-800 uppercase tracking-wider block mb-1">
-            Assigned to Authority
+            Acknowledged
           </span>
-          <span className="text-2xl sm:text-3xl font-black text-blue-600">{assignedCount}</span>
+          <span className="text-2xl font-black text-blue-600">{acknowledgedCount}</span>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-purple-200 bg-purple-50/40 shadow-2xs">
+        <div className="bg-white p-4 rounded-xl border border-sky-200 bg-sky-50/40 shadow-2xs">
+          <span className="text-xs font-bold text-sky-800 uppercase tracking-wider block mb-1">
+            Assigned
+          </span>
+          <span className="text-2xl font-black text-sky-600">{assignedCount}</span>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-purple-200 bg-purple-50/40 shadow-2xs">
           <span className="text-xs font-bold text-purple-800 uppercase tracking-wider block mb-1">
             In Progress
           </span>
-          <span className="text-2xl sm:text-3xl font-black text-purple-600">{inProgressCount}</span>
+          <span className="text-2xl font-black text-purple-600">{inProgressCount}</span>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-emerald-200 bg-emerald-50/40 shadow-2xs col-span-2 sm:col-span-1">
+        <div className="bg-white p-4 rounded-xl border border-emerald-200 bg-emerald-50/40 shadow-2xs">
           <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block mb-1">
             Resolved
           </span>
-          <span className="text-2xl sm:text-3xl font-black text-emerald-600">{resolvedCount}</span>
+          <span className="text-2xl font-black text-emerald-600">{resolvedCount}</span>
         </div>
       </div>
+
 
       {/* Recent Reports Header */}
       <div className="mb-6 flex items-center justify-between">

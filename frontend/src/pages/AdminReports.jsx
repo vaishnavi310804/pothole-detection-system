@@ -161,10 +161,11 @@ const AdminReports = () => {
             className="text-xs px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500"
           >
             <option value="">All Statuses</option>
+            <option value="Reported">Reported</option>
+            <option value="Acknowledged">Acknowledged</option>
             <option value="Assigned">Assigned</option>
             <option value="In Progress">In Progress</option>
             <option value="Resolved">Resolved</option>
-            <option value="Reported">Reported</option>
           </select>
 
           <select
@@ -252,6 +253,7 @@ const AdminReports = () => {
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {filteredPotholes.map((pothole) => {
+                  const currentStatus = pothole.status || pothole.reportStatus || "Reported";
                   const authName = pothole.authority?.name;
                   const isUnverified =
                     !authName ||
@@ -296,21 +298,25 @@ const AdminReports = () => {
                             </p>
                           )}
 
-                          <select
-                            disabled={updatingId === pothole._id}
-                            onChange={(e) => handleReassign(pothole._id, e.target.value)}
-                            value=""
-                            className="text-[11px] px-2 py-1 rounded border border-slate-300 bg-white font-medium text-slate-700 w-full focus:ring-1 focus:ring-amber-500"
-                          >
-                            <option value="" disabled>
-                              Reassign Authority...
-                            </option>
-                            {SUPPORTED_AUTHORITY_NAMES.map((name) => (
-                              <option key={name} value={name}>
-                                {name}
+                          {currentStatus === "In Progress" || currentStatus === "Resolved" ? (
+                            <span className="text-[10px] text-slate-400 italic block">Locked (In Repair)</span>
+                          ) : (
+                            <select
+                              disabled={updatingId === pothole._id}
+                              onChange={(e) => handleReassign(pothole._id, e.target.value)}
+                              value=""
+                              className="text-[11px] px-2 py-1 rounded border border-slate-300 bg-white font-medium text-slate-700 w-full focus:ring-1 focus:ring-amber-500"
+                            >
+                              <option value="" disabled>
+                                Reassign Authority...
                               </option>
-                            ))}
-                          </select>
+                              {SUPPORTED_AUTHORITY_NAMES.map((name) => (
+                                <option key={name} value={name}>
+                                  {name}
+                                </option>
+                              ))}
+                            </select>
+                          )}
                         </div>
                       </td>
 
@@ -332,17 +338,23 @@ const AdminReports = () => {
 
                       {/* Status Select */}
                       <td className="py-3 px-4">
-                        <select
-                          value={pothole.status || pothole.reportStatus || "Reported"}
-                          disabled={updatingId === pothole._id}
-                          onChange={(e) => handleStatusChange(pothole._id, e.target.value)}
-                          className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white focus:ring-2 focus:ring-amber-500"
-                        >
-                          <option value="Pending">Pending</option>
-                          <option value="Assigned">Assigned</option>
-                          <option value="In Progress">In Progress</option>
-                          <option value="Resolved">Resolved</option>
-                        </select>
+                        {currentStatus === "In Progress" || currentStatus === "Resolved" ? (
+                          <div className="flex flex-col items-start gap-1">
+                            <StatusBadge value={currentStatus} type="status" />
+                            <span className="text-[10px] text-slate-400 font-medium">Authority Managed</span>
+                          </div>
+                        ) : (
+                          <select
+                            value={currentStatus}
+                            disabled={updatingId === pothole._id}
+                            onChange={(e) => handleStatusChange(pothole._id, e.target.value)}
+                            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white focus:ring-2 focus:ring-amber-500"
+                          >
+                            <option value="Reported">Reported</option>
+                            <option value="Acknowledged">Acknowledged</option>
+                            <option value="Assigned">Assigned</option>
+                          </select>
+                        )}
                       </td>
 
                       {/* Actions */}

@@ -198,29 +198,34 @@ const AdminPotholeDetails = () => {
         {/* Right 1 Col: Admin Controls & Reporter Info */}
         <div className="space-y-6">
           {/* Status Update Control */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <h2 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <span>🛡️</span> Admin Controls
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+            <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+              <span>🛡️</span> Admin Platform Management
             </h2>
 
-            <div className="mb-4">
-              <label className="block text-xs font-semibold text-slate-500 mb-2">Current Status</label>
-              <StatusBadge value={reportStatus} type="status" />
+            <div className="flex justify-between items-center text-xs">
+              <span className="font-semibold text-slate-500">Current Status</span>
+              <StatusBadge value={reportStatus || pothole.status} type="status" />
             </div>
 
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Change Report Status To</label>
-            <select
-              value={reportStatus}
-              disabled={updating}
-              onChange={(e) => handleStatusChange(e.target.value)}
-              className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm font-semibold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
-            >
-              <option value="Reported">Reported</option>
-              <option value="Acknowledged">Acknowledged</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Resolved">Resolved</option>
-            </select>
+            {/* Role-based action buttons */}
+            {(reportStatus === "Reported" || pothole.status === "Reported") && (
+              <button
+                onClick={() => handleStatusChange("Acknowledged")}
+                disabled={updating}
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-colors shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
+              >
+                {updating ? "Updating..." : "✓ Acknowledge Report"}
+              </button>
+            )}
+
+            {(reportStatus === "In Progress" || pothole.status === "In Progress" || reportStatus === "Resolved" || pothole.status === "Resolved") && (
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 leading-relaxed font-medium">
+                ℹ️ Operational repair progress (In Progress / Resolved) is managed by the assigned municipal authority.
+              </div>
+            )}
           </div>
+
 
           {/* Reporter Information */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-3">
