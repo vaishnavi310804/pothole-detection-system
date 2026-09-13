@@ -2,7 +2,8 @@ export const callAIService = async (file) => {
   const aiServiceUrl = process.env.AI_SERVICE_URL || "http://localhost:8000";
   
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout for video/image AI detection
+
 
   try {
     const formData = new FormData();

@@ -5,10 +5,6 @@ from PIL import Image
 from ultralytics import YOLO
 
 def debug_inference():
-    print("==================================================")
-    print("  AI POTHOLE DETECTION DIAGNOSTIC SUITE")
-    print("==================================================")
-
     # 1. Model Verification
     model_path = os.path.join(os.path.dirname(__file__), "model", "pothole_yolov8n.pt")
     print(f"\n--- STEP 1: MODEL VERIFICATION ---")

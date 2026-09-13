@@ -19,18 +19,6 @@ const PotholeForm = ({ onSuccess }) => {
   const [error, setError] = useState("");
 
   const runDetection = async (file) => {
-    if (file.type.startsWith("video/")) {
-      setDetectionResult({
-        detected: false,
-        confidence: null,
-        severity: null,
-        count: 0,
-        detections: [],
-        needsManualReview: true,
-      });
-      return;
-    }
-
     try {
       setIsAnalyzing(true);
       setDetectionError("");
@@ -41,10 +29,13 @@ const PotholeForm = ({ onSuccess }) => {
       const msg = err.response?.data?.message || err.message || "AI Service Unavailable";
       setDetectionError(msg);
       setDetectionResult({
+        mediaType: file.type.startsWith("video/") ? "video" : "image",
         detected: false,
         confidence: null,
         severity: null,
         count: 0,
+        videoMetadata: null,
+        videoDetections: [],
         detections: [],
         needsManualReview: true,
       });
@@ -73,6 +64,9 @@ const PotholeForm = ({ onSuccess }) => {
   };
 
   const handleClearFile = () => {
+    if (filePreview?.url) {
+      URL.revokeObjectURL(filePreview.url);
+    }
     setSelectedFile(null);
     setFilePreview(null);
     setDetectionResult(null);
@@ -135,23 +129,31 @@ const PotholeForm = ({ onSuccess }) => {
 
       setUploadStatus("Creating pothole report in database...");
 
+      const isVideo = selectedFile.type.startsWith("video/");
       const detectionPayload = detectionResult
         ? {
+            mediaType: detectionResult.mediaType || (isVideo ? "video" : "image"),
             detected: !!detectionResult.detected,
             confidence: detectionResult.detected ? parseFloat(detectionResult.confidence) : null,
             severity: detectionResult.detected ? detectionResult.severity : null,
             count: detectionResult.count || 0,
+            videoMetadata: detectionResult.videoMetadata || null,
+            videoDetections: detectionResult.videoDetections || [],
             detections: detectionResult.detections || [],
             needsManualReview: !!detectionResult.needsManualReview,
           }
         : {
+            mediaType: isVideo ? "video" : "image",
             detected: false,
             confidence: null,
             severity: null,
             count: 0,
+            videoMetadata: null,
+            videoDetections: [],
             detections: [],
             needsManualReview: true,
           };
+
 
       const potholePayload = {
         media: {
@@ -201,12 +203,12 @@ const PotholeForm = ({ onSuccess }) => {
 
       <div className="mb-6">
         <label className="block text-sm font-semibold text-slate-800 mb-2">
-          Pothole Image <span className="text-rose-500">*</span>
+          Pothole Image or Video <span className="text-rose-500">*</span>
         </label>
         <div className="border-2 border-dashed border-slate-300 hover:border-amber-500 rounded-xl p-6 text-center bg-slate-50 transition-colors cursor-pointer relative">
           <input
             type="file"
-            accept="image/jpeg,image/png,image/jpg,video/mp4,video/mpeg,video/quicktime"
+            accept="image/*,video/*"
             onChange={handleFileChange}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             disabled={loading || isAnalyzing}
@@ -225,12 +227,11 @@ const PotholeForm = ({ onSuccess }) => {
             </div>
           ) : (
             <div className="space-y-2">
-              <div className="text-4xl text-slate-400">📸</div>
               <p className="text-sm font-medium text-slate-700">
-                Click to upload or drag and drop image/video
+                Click to upload or drag and drop image or video
               </p>
               <p className="text-xs text-slate-400">
-                Supports JPG, PNG, MP4, MOV (Max 50MB)
+                Supports JPG, PNG, WEBP, MP4, MOV, AVI, WEBM (Max 50MB, max 60s video)
               </p>
             </div>
           )}
@@ -241,6 +242,7 @@ const PotholeForm = ({ onSuccess }) => {
       <DetectionPreview
         detectionResult={detectionResult}
         isAnalyzing={isAnalyzing}
+        isAnalyzingVideo={selectedFile?.type?.startsWith("video/")}
         detectionError={detectionError}
         onClearFile={handleClearFile}
         onRetry={handleRetryDetection}
@@ -306,11 +308,14 @@ const PotholeForm = ({ onSuccess }) => {
         className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 px-6 rounded-lg transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm"
       >
         {isAnalyzing
-          ? "Analyzing Image with AI..."
+          ? selectedFile?.type?.startsWith("video/")
+            ? "Analyzing Video with AI..."
+            : "Analyzing Image with AI..."
           : loading
           ? "Submitting Report..."
           : "Submit Pothole Report"}
       </button>
+
     </form>
   );
 };

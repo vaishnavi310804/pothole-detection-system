@@ -4,3 +4,4 @@ python-multipart>=0.0.6
 pydantic>=2.0.0
 ultralytics
 pillow
+opencv-python-headless>=4.8.0

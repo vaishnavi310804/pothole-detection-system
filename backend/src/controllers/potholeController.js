@@ -17,6 +17,34 @@ const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 // Helper to normalize and validate detection payload
 const normalizeDetectionData = (detection = {}) => {
   const isDetected = Boolean(detection.detected);
+  const mediaType = detection.mediaType || "image";
+
+  let videoMetadata = null;
+  if (detection.videoMetadata && typeof detection.videoMetadata === "object") {
+    videoMetadata = {
+      duration: typeof detection.videoMetadata.duration === "number" ? detection.videoMetadata.duration : 0,
+      fps: typeof detection.videoMetadata.fps === "number" ? detection.videoMetadata.fps : 0,
+      totalFrames: typeof detection.videoMetadata.totalFrames === "number" ? detection.videoMetadata.totalFrames : 0,
+    };
+  }
+
+  let videoDetections = Array.isArray(detection.videoDetections)
+    ? detection.videoDetections.map((vd) => ({
+        timestamp: typeof vd.timestamp === "number" ? vd.timestamp : 0,
+        frameNumber: typeof vd.frameNumber === "number" ? vd.frameNumber : 0,
+        confidence: typeof vd.confidence === "number" ? vd.confidence : 0,
+        count: typeof vd.count === "number" ? vd.count : 1,
+        severity: vd.severity || "Low",
+      }))
+    : Array.isArray(detection.detections) && mediaType === "video"
+    ? detection.detections.map((vd) => ({
+        timestamp: typeof vd.timestamp === "number" ? vd.timestamp : 0,
+        frameNumber: typeof vd.frameNumber === "number" ? vd.frameNumber : 0,
+        confidence: typeof vd.confidence === "number" ? vd.confidence : 0,
+        count: typeof vd.count === "number" ? vd.count : 1,
+        severity: vd.severity || "Low",
+      }))
+    : [];
 
   if (isDetected) {
     let conf = typeof detection.confidence === "number" ? detection.confidence : null;
@@ -36,23 +64,33 @@ const normalizeDetectionData = (detection = {}) => {
           confidence: typeof d.confidence === "number" ? d.confidence : conf,
           boundingBox: d.boundingBox || null,
           normalizedBox: d.normalizedBox || null,
+          timestamp: d.timestamp,
+          frameNumber: d.frameNumber,
+          count: d.count,
+          severity: d.severity,
         }))
       : [];
 
     return {
+      mediaType,
       detected: true,
       confidence: conf,
       severity: sev,
       count: cnt,
+      videoMetadata,
+      videoDetections,
       detections: dets,
       needsManualReview: Boolean(detection.needsManualReview),
     };
   } else {
     return {
+      mediaType,
       detected: false,
       confidence: null,
       severity: null,
       count: 0,
+      videoMetadata,
+      videoDetections: [],
       detections: [],
       needsManualReview: true,
     };
@@ -73,18 +111,25 @@ const formatPothole = async (potholeDoc) => {
 
   // Ensure safe detection structure for legacy records
   if (pothole.detection) {
+    if (!pothole.detection.mediaType) {
+      pothole.detection.mediaType = pothole.media?.type || "image";
+    }
     if (pothole.detection.detected === undefined) {
       pothole.detection.detected = Boolean(pothole.detection.severity || pothole.detection.confidence);
       pothole.detection.needsManualReview = !pothole.detection.detected;
       pothole.detection.count = pothole.detection.detected ? 1 : 0;
       pothole.detection.detections = pothole.detection.detections || [];
     }
+    pothole.detection.videoDetections = pothole.detection.videoDetections || [];
   } else {
     pothole.detection = {
+      mediaType: pothole.media?.type || "image",
       detected: false,
       confidence: null,
       severity: null,
       count: 0,
+      videoMetadata: null,
+      videoDetections: [],
       detections: [],
       needsManualReview: true,
     };
@@ -92,6 +137,7 @@ const formatPothole = async (potholeDoc) => {
 
   return pothole;
 };
+
 
 const formatPotholes = async (potholeDocs) => {
   if (!Array.isArray(potholeDocs)) return [];
@@ -473,32 +519,33 @@ export const detectPothole = async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
-        message: "Please upload an image for AI detection",
+        message: "Please upload an image or video for AI detection",
       });
     }
 
-    if (req.file.mimetype.startsWith("video/")) {
-      return res.status(400).json({
-        message: "Video AI detection is not available yet. Please upload an image.",
-      });
-    }
-
-    const allowedImageTypes = [
+    const allowedTypes = [
       "image/jpeg",
       "image/png",
       "image/jpg",
       "image/webp",
+      "video/mp4",
+      "video/mpeg",
+      "video/quicktime",
+      "video/webm",
+      "video/x-msvideo",
+      "video/avi",
     ];
 
-    if (!allowedImageTypes.includes(req.file.mimetype)) {
+    if (!allowedTypes.includes(req.file.mimetype) && !req.file.mimetype.startsWith("video/") && !req.file.mimetype.startsWith("image/")) {
       return res.status(400).json({
-        message: "Unsupported file type. Please upload a JPG or PNG image.",
+        message: "Unsupported file type. Please upload a supported image (JPG, PNG) or video (MP4, MOV, AVI, WEBM).",
       });
     }
 
     const aiResult = await callAIService(req.file);
     return res.status(200).json(aiResult);
   } catch (error) {
+
     console.error("AI Detection error in controller:", error.message);
 
     if (error.code === "ETIMEDOUT" || error.name === "AbortError") {

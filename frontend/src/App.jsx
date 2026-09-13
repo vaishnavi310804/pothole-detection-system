@@ -84,7 +84,7 @@ function AppContent() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
+      <footer className="bg-white border-t border-slate-200 py-2 text-center text-xs text-slate-500">
         <p>© {new Date().getFullYear()} OK Driver — Smart Pothole Detection & Reporting Platform</p>
       </footer>
     </div>

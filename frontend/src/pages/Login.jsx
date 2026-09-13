@@ -43,9 +43,6 @@ const Login = () => {
     <div className="min-h-[80vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-8 space-y-6">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-amber-500 text-slate-950 font-black text-2xl mb-3 shadow-sm">
-            OK
-          </div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
             Sign in to OK Driver
           </h2>

@@ -245,26 +245,78 @@ const AdminPotholeDetails = () => {
 
           {/* Detection & Metadata Summary */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
-            <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
-              Detection Metrics
+            <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center justify-between">
+              <span>Detection Metrics</span>
+              <span className="text-xs font-semibold text-slate-500 capitalize">{media?.type || "image"}</span>
             </h2>
 
             <div className="flex justify-between items-center text-xs">
-              <span className="text-slate-500">Severity Level</span>
+              <span className="text-slate-500">Overall Severity</span>
               <StatusBadge value={detection?.severity} type="severity" />
             </div>
 
             <div className="flex justify-between items-center text-xs">
-              <span className="text-slate-500">AI Confidence</span>
+              <span className="text-slate-500">
+                {media?.type === "video" ? "Max Confidence" : "AI Confidence"}
+              </span>
               <span className="font-bold text-slate-800">
                 {detection?.confidence != null ? `${Math.round(detection.confidence * 100)}%` : "N/A"}
               </span>
             </div>
 
             <div className="flex justify-between items-center text-xs">
-              <span className="text-slate-500">Media Type</span>
-              <span className="font-semibold text-slate-700 capitalize">{media?.type || "N/A"}</span>
+              <span className="text-slate-500">
+                {media?.type === "video" ? "Max Potholes Found" : "Pothole Count"}
+              </span>
+              <span className="font-bold text-slate-800">{detection?.count || 0}</span>
             </div>
+
+            {/* Video Metadata & Detection Timeline */}
+            {media?.type === "video" && (
+              <div className="pt-3 border-t border-slate-100 space-y-3">
+                {detection?.videoMetadata && (
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs space-y-1 text-slate-600">
+                    <div className="flex justify-between">
+                      <span>Video Duration:</span>
+                      <span className="font-bold text-slate-800">{detection.videoMetadata.duration}s</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Frame Rate:</span>
+                      <span className="font-bold text-slate-800">{detection.videoMetadata.fps} FPS</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Total Frames:</span>
+                      <span className="font-bold text-slate-800">{detection.videoMetadata.totalFrames}</span>
+                    </div>
+                  </div>
+                )}
+
+                {detection?.videoDetections && detection.videoDetections.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      Detection Timeline ({detection.videoDetections.length} events)
+                    </h3>
+                    <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                      {detection.videoDetections.map((evt, idx) => {
+                        const mins = Math.floor((evt.timestamp || 0) / 60);
+                        const secs = Math.floor((evt.timestamp || 0) % 60);
+                        const tsStr = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+                        return (
+                          <div key={idx} className="bg-slate-50 p-2 rounded-lg border border-slate-200 text-xs flex justify-between items-center">
+                            <span className="font-mono font-bold text-slate-900 bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                              ⏱ {tsStr}
+                            </span>
+                            <span className="font-semibold text-slate-700">
+                              {evt.severity || "Low"} Severity ({evt.count} hazard)
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex justify-between items-center text-xs pt-3 border-t border-slate-100">
               <span className="text-slate-500">Submitted On</span>
@@ -273,6 +325,7 @@ const AdminPotholeDetails = () => {
               </span>
             </div>
           </div>
+
 
           {/* Assigned Authority */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-3">

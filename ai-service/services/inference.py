@@ -81,6 +81,7 @@ def run_image_inference(image_bytes: bytes):
     annotated_image_base64 = f"data:image/jpeg;base64,{base64_str}"
 
     return {
+        "mediaType": "image",
         "detected": detected,
         "confidence": overall_confidence,
         "severity": severity,
@@ -89,3 +90,4 @@ def run_image_inference(image_bytes: bytes):
         "needsManualReview": needs_manual_review,
         "annotatedImageBase64": annotated_image_base64
     }
+

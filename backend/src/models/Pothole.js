@@ -38,6 +38,11 @@ const potholeSchema = new mongoose.Schema(
       },
     },
     detection: {
+      mediaType: {
+        type: String,
+        enum: ["image", "video"],
+        default: "image",
+      },
       detected: {
         type: Boolean,
         default: false,
@@ -55,6 +60,20 @@ const potholeSchema = new mongoose.Schema(
         type: Number,
         default: 0,
       },
+      videoMetadata: {
+        duration: { type: Number },
+        fps: { type: Number },
+        totalFrames: { type: Number },
+      },
+      videoDetections: [
+        {
+          timestamp: { type: Number },
+          frameNumber: { type: Number },
+          confidence: { type: Number },
+          count: { type: Number },
+          severity: { type: String },
+        },
+      ],
       detections: [
         {
           label: { type: String, default: "pothole" },
@@ -71,6 +90,10 @@ const potholeSchema = new mongoose.Schema(
             x2: { type: Number },
             y2: { type: Number },
           },
+          timestamp: { type: Number },
+          frameNumber: { type: Number },
+          count: { type: Number },
+          severity: { type: String },
         },
       ],
       needsManualReview: {
@@ -78,6 +101,7 @@ const potholeSchema = new mongoose.Schema(
         default: false,
       },
     },
+
 
     authority: {
       name: {
